@@ -1,0 +1,194 @@
+<html>
+   
+<canvas id="gameCanvas" width="800" height="600"></canvas>
+
+<script>
+    var canvas;
+    var canvasContext;
+    var ballX = 50;
+    var ballY = 50;
+    var ballSpeedX=10;
+    var ballSpeedY=4;
+    
+    var player1Score=0;
+    var player2Score=0;
+    const winning_score=3;
+    
+    var showWinScreen=false;
+    
+    var paddle1Y = 250;
+    var paddle2Y = 250;
+    const paddle_thickness = 10;
+    const paddle_height = 100;
+    
+    function calcMousePos(event){
+        var rect=canvas.getBoundingClientRect();
+        var root=document.documentElement;
+        var mouseX=event.clientX - rect.left - root.scrollLeft;
+        var mouseY=event.clientY - rect.top - root.scrollTop;
+        return{
+            x:mouseX,
+            y:mouseY
+        };
+    }
+    
+function handleMouseClick(event){
+    if(showWinScreen){
+        player1Score=0;
+        player2Score=0;
+        showWinScreen=false;
+    }
+}    
+
+window.onload = function() {
+	canvas = document.getElementById('gameCanvas');
+	canvasContext = canvas.getContext('2d');//operating in a two-dimensional plane
+    
+    var framesPerSecond=30;
+    setInterval(function() {
+        moveEverything();
+        drawEverything();
+    }, 1000/framesPerSecond );
+    
+    canvasContext.font = "20px Georgia";
+    
+    canvas.addEventListener('mousedown', handleMouseClick);
+	
+    canvas.addEventListener('mousemove', function(event){
+        var mousePos = calcMousePos(event);
+        paddle1Y = mousePos.y - (paddle_height/2); //to bring the mouse position to the center of the paddle
+    });
+}
+
+function ballReset(){
+    if(player1Score >= winning_score || player2Score >= winning_score){
+        showWinScreen=true;
+    }
+    
+    ballSpeedX = -ballSpeedX;
+    ballX = canvas.width/2; //centered horizontally
+    ballY = canvas.height/2; //centered vertically
+}
+    
+function computerMovement(){
+    var paddle2Ycenter=paddle2Y+(paddle_height/2); //line up right paddle's center to ball
+    
+    //avoid shakiness of right paddle
+    if(paddle2Ycenter < ballY-35){ //ignore chasing the ball while it's within 35 pixels above or below the paddle center position i.e. 70 pixel span
+        paddle2Y+=6;
+    } else if(paddle2Ycenter > ballY+35){
+        paddle2Y-=6;
+    }
+}    
+
+function moveEverything(){
+    if(showWinScreen){
+        return;
+    } //skips the function if either side wins
+    computerMovement();
+    
+    ballX+=ballSpeedX;
+    ballY+=ballSpeedY;
+    
+    if(ballX < 0){
+        //ball bounces off the left paddle on hitting it
+        if(ballY > paddle1Y && ballY < paddle1Y+paddle_height){
+            ballSpeedX = -ballSpeedX;
+            
+            //controlling the ball movement
+            var deltaY = ballY-(paddle1Y+paddle_height/2);
+            ballSpeedY=deltaY*0.35;
+        } else{
+           player2Score++;    //must be BEFORE ballReset
+           ballReset(); 
+        }
+       
+    }//move the ball in opposite direction with the same speed on colliding against the left wall
+    
+    if(ballX > canvas.width){
+        //ball bounces off the left paddle on hitting it
+        
+        if(ballY > paddle2Y && ballY < paddle2Y+paddle_height){
+            ballSpeedX = -ballSpeedX;
+            
+            //controlling the ball movement
+            var deltaY = ballY-(paddle2Y+paddle_height/2);
+            ballSpeedY=deltaY*0.35;
+        } else{
+           player1Score++;  //must be BEFORE ballReset
+           ballReset(); 
+        } //move the ball in opposite direction with the same speed on colliding against the right wall
+    }
+    
+     if(ballY < 0){
+        ballSpeedY = -ballSpeedY;
+    }//move the ball in opposite direction from left vertically
+    
+    if(ballY > canvas.height){
+        ballSpeedY = -ballSpeedY; //move the ball in opposite direction from right vertically
+    }
+}
+    
+function drawNet(){
+    for(var i=0; i<canvas.height;i+=40){
+         colorRect(canvas.width/2-1,i,2,20,'white');
+    }
+}    
+
+function drawEverything(){
+    
+   colorRect(0,0,canvas.width,canvas.height,'darkblue');//setting up a blue box screen
+    
+    if(showWinScreen){
+        canvasContext.fillStyle = 'white';
+        canvasContext.font = "20px Georgia";
+        
+        var gradient = canvasContext.createLinearGradient(0, 0, canvas.width, 0);
+        gradient.addColorStop("0.2", "white");
+        gradient.addColorStop("0.5", "orange");
+        gradient.addColorStop("0.7", "yellow");
+        
+        // Fill with gradient
+        canvasContext.fillStyle = gradient;
+        
+        if(player1Score >= winning_score){
+            canvasContext.fillText("Left Player Won!", 320, 200);
+        } 
+        else if(player2Score >= winning_score){
+            canvasContext.fillText("Right Player Won!", 320, 200);
+        }
+        canvasContext.fillText("Click to Continue", 340, 500);
+        return;
+    } //skips the function if either side wins
+    
+    drawNet();
+    
+    colorRect(0,paddle1Y,paddle_thickness,paddle_height,'yellow');//setting up the left player paddle
+    
+     colorRect(canvas.width-paddle_thickness,paddle2Y,paddle_thickness,paddle_height,'yellow');//setting up the right computer paddle
+    
+    colorCircle(ballX, ballY, 10, 'red');
+    
+    canvasContext.fillStyle = 'white';
+    canvasContext.fillText(player1Score, 100, 100); //player 1 score will be displayed at coordinates 100,100
+    canvasContext.fillText(player2Score, canvas.width-100, 100); //player 2 score will be displayed at coordinates canvas.width-100,100
+}
+    
+function colorCircle(centerX, centerY, radius, drawColor){
+     
+    //setting up a red ball
+    
+    canvasContext.fillStyle = drawColor;
+    canvasContext.beginPath();//defining a shape to fill in
+    canvasContext.arc(centerX, centerY, radius, 0, Math.PI*2, true);
+    canvasContext.fill();
+}    
+    
+function colorRect(leftX,topY,width,height,drawColor){
+    canvasContext.fillStyle = drawColor;
+    canvasContext.fillRect(leftX,topY,width,height);
+}    
+
+</script>
+
+</html>
